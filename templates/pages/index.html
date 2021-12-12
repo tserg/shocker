@@ -1,0 +1,50 @@
+{% extends 'layouts/bare.html' %}
+
+{% block content %}
+
+<div class="row">
+	<div class="col">
+		<h1>SHOrts traCKER: Track your DeFi shorts</h1>
+		<p>Shorting a token against ETH on DeFi lending protocols? Use this tracker to track your positions.</p>
+		<p><small>Note: Only tracks Uniswap V3</small></p>
+	</div>
+</div>
+
+<form action="" onsubmit="addTransaction(); return false;">
+<div class="row mb-3">
+	<label for="transaction-hash" class="col-sm-2 col-form-label">Transaction Hash</label>
+	<div class="col col-sm-6">
+		<input type="text" id="transaction-hash" class="form-control"></input>
+	</div>
+	<div class="col col-sm-2">
+		<input type="submit" value="Add" class="btn btn-primary"></input>
+	</div>
+</div>
+<div class="row mb-3">
+	<div class="col col-sm-6 offset-sm-3 ">
+		<span id="error-message"></span>
+	</div>
+</div>
+</form>
+
+<div class="row">
+	<div class="col">
+		<table class="table" id="transaction-table">
+		  <thead>
+		    <tr>
+		      <th scope="col">Trading pair (Short-Long)</th>
+			  <th scope="col">Opened on</th>
+			  <th scope="col">Execution price</th>
+			  <th scope="col">Current price</th>
+			  <th scope="col">Profit/Loss</th>
+		      <th scope="col"></th>
+		    </tr>
+		  </thead>
+		  <tbody>
+		  </tbody>
+		</table>
+	</div>
+</div>
+<script src={{ url_for('static', filename='js/transaction.js') }}></script>
+
+{% endblock %}
