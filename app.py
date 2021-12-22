@@ -19,6 +19,7 @@ from flask import (
     jsonify,
     request,
     render_template,
+    session,
 )
 
 from flask_sqlalchemy import SQLAlchemy
@@ -31,9 +32,18 @@ from models import (
     random_nonce,
     setup_db,
     User,
+    Transaction,
 )
 
 load_dotenv()
+
+INFURA_PROJECT_ID = os.getenv('INFURA_PROJECT_ID')
+INFURA_SECRET = os.getenv('INFURA_SECRET')
+
+UNISWAP_V3_ROUTER_ADDRESS = os.getenv('UNISWAP_V3_ROUTER_ADDRESS')
+UNISWAP_V3_GRAPH_API_URL = os.getenv('UNISWAP_V3_GRAPH_API_URL')
+
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 def create_app():
     app = Flask(__name__)
@@ -41,11 +51,7 @@ def create_app():
 
     setup_db(app)
 
-    INFURA_PROJECT_ID = os.getenv('INFURA_PROJECT_ID')
-    INFURA_SECRET = os.getenv('INFURA_SECRET')
-
-    UNISWAP_V3_ROUTER_ADDRESS = os.getenv('UNISWAP_V3_ROUTER_ADDRESS')
-    UNISWAP_V3_GRAPH_API_URL = os.getenv('UNISWAP_V3_GRAPH_API_URL')
+    app.secret_key = SECRET_KEY
 
     w3 = Web3(Web3.HTTPProvider(f'https://mainnet.infura.io/v3/{INFURA_PROJECT_ID}'))
 
@@ -116,13 +122,13 @@ def create_app():
                 user.nonce = random_nonce()
                 user.update()
 
-                print("Old nonce: " + str(nonce))
-                print("New nonce: " + str(user.nonce))
+                session['wallet_address'] = wallet_address
+                print(session)
 
                 return jsonify({
                     'success': True
                 })
-                
+
             except Exception as e:
 
                 print(e)
@@ -147,6 +153,15 @@ def create_app():
                 'success': False,
                 'message': 'Transaction hash is invalid.'
             })
+
+        is_user = False
+        if 'wallet_address' in session:
+
+            user = User.query.filter(
+                User.wallet_address==session['wallet_address']
+            ).first()
+            if user:
+                is_user = True
 
         try:
 
@@ -217,6 +232,26 @@ def create_app():
                     'success': False,
                     'message': 'We encountered an issue while trying to retrieve the transaction. Please try again.'
                 })
+
+            if is_user:
+
+                tx = Transaction.query.filter(
+                    Transaction.tx_hash==tx_hash,
+                    Transaction.user_address==user.wallet_address,
+                ).first()
+
+                print("adding transaction to db")
+
+                if not tx:
+
+                    transaction = Transaction(
+                        user_address=user.wallet_address,
+                        tx_hash=tx_hash,
+                        trading_pair=trading_pair,
+                        opened_on=tx_timestamp,
+                        short_ratio=short_ratio,
+                    )
+                    transaction.insert()
 
             return jsonify({
                 'success': True,
