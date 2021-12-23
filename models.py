@@ -12,7 +12,6 @@ from random import randint
 from utils.transaction import calculate_profit_loss
 from utils.fetchers.uniswap_v3_fetcher import get_uniswap_v3_price
 
-
 load_dotenv()
 
 database_path = os.getenv('DATABASE_URL')
@@ -20,6 +19,9 @@ database_path = os.getenv('DATABASE_URL')
 db = SQLAlchemy()
 
 def setup_db(app, database_path=database_path):
+
+    if 'postgresql' not in database_path:
+        database_path.replace('://', 'ql://', 1)
 
     app.config['SQLALCHEMY_DATABASE_URI'] = database_path
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -66,7 +68,6 @@ class User(db.Model):
         ).all()
 
         transaction_data = []
-
 
         for t in transactions:
             t_data = t.to_dict()
