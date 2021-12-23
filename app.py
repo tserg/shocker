@@ -26,13 +26,21 @@ from flask_sqlalchemy import SQLAlchemy
 
 from web3 import Web3
 
-from utils import is_transaction_valid
+from utils.transaction import (
+    is_transaction_valid,
+    calculate_profit_loss,
+)
 
 from models import (
     random_nonce,
     setup_db,
     User,
     Transaction,
+)
+
+from utils.fetchers.uniswap_v3_fetcher import (
+    get_uniswap_v3_transaction_info,
+    get_uniswap_v3_price,
 )
 
 load_dotenv()
@@ -174,57 +182,18 @@ def create_app():
                     'message': 'The transaction is not a Uniswap V3 transaction.'
                 })
 
-            to_token_log = tx_receipt.logs[0]
-            to_token_address = to_token_log.address
-            to_token_amount = int(to_token_log.data, 16)
-            to_token_contract = w3.eth.contract(
-                address=to_token_address,
-                abi=ERC20ABI
-            )
-            to_token_symbol = to_token_contract.functions.symbol().call()
-
-            from_token_log = tx_receipt.logs[1]
-            from_token_address = from_token_log.address
-            from_token_amount = int(from_token_log.data, 16)
-            from_token_contract = w3.eth.contract(
-                address=from_token_address,
-                abi=ERC20ABI
-            )
-            from_token_symbol = from_token_contract.functions.symbol().call()
-
-
-            block_number = tx_receipt.blockNumber
-            tx_timestamp = datetime.utcfromtimestamp(
-                int(w3.eth.get_block(block_number).timestamp)
-            ).strftime('%Y-%m-%d %H:%M:%S')
-
-            trading_pair = from_token_symbol + "-" + to_token_symbol
-            short_ratio = to_token_amount / from_token_amount
-
-            query = '''{
-                token(id: "''' +  str(from_token_address).lower() + '''") {
-                    derivedETH
-                }
-            }'''
+            from_token_address, from_token_amount, to_token_amount, tx_timestamp, \
+                trading_pair, short_ratio = get_uniswap_v3_transaction_info(w3, tx_receipt)
 
             current_ratio = 0
             try:
 
-                response = requests.post(
-                    url=UNISWAP_V3_GRAPH_API_URL,
-                    headers={
-                        "Content-Type": "application/json"
-                    },
-                    json={"query": query}
+                current_ratio = get_uniswap_v3_price(from_token_address)
+                profit_loss = calculate_profit_loss(
+                    to_token_amount,
+                    from_token_amount,
+                    current_ratio
                 )
-
-                response_data = response.text
-
-                start_idx = response_data.find('"derivedETH":"')
-                end_idx = response_data.find('"', start_idx+14)
-
-                current_ratio = float(response_data[start_idx+14:end_idx])
-                profit_loss = Web3.fromWei(to_token_amount - (from_token_amount * current_ratio), 'ether')
 
             except Exception as e:
                 print(e)
@@ -240,18 +209,29 @@ def create_app():
                     Transaction.user_address==user.wallet_address,
                 ).first()
 
-                print("adding transaction to db")
-
                 if not tx:
 
-                    transaction = Transaction(
-                        user_address=user.wallet_address,
-                        tx_hash=tx_hash,
-                        trading_pair=trading_pair,
-                        opened_on=tx_timestamp,
-                        short_ratio=short_ratio,
-                    )
-                    transaction.insert()
+                    try:
+                        transaction = Transaction(
+                            user_address=user.wallet_address,
+                            tx_hash=tx_hash,
+                            trading_pair=trading_pair,
+                            opened_on=tx_timestamp,
+                            short_ratio=short_ratio,
+                            to_token_amount=to_token_amount,
+                            from_token_amount=from_token_amount,
+                            from_token_address=from_token_address,
+                        )
+                        transaction.insert()
+
+                    except Exception as e:
+                        print(e)
+
+                else:
+                    return jsonify({
+                        'success': False,
+                        'message': 'This transaction has already been added.'
+                    })
 
             return jsonify({
                 'success': True,
@@ -268,5 +248,28 @@ def create_app():
                 'success': False,
                 'message': 'We encountered an issue while trying to retrieve the transaction. Please try again.'
             })
+
+    @app.route('/user/transactions', methods=['POST'])
+    def get_transactions():
+
+        wallet_address = session['wallet_address']
+
+        user = User.query.filter(
+            User.wallet_address==wallet_address
+        ).first()
+
+        if not user:
+
+            return jsonify({
+                'success': False,
+                'message': f'You are not authorised to view the transactions for {wallet_address}.'
+            })
+
+        transaction_data = user.get_transactions()
+
+        return jsonify({
+            'success': True,
+            'transactions': transaction_data
+        })
 
     return app
