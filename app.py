@@ -1,5 +1,4 @@
 import os
-import json
 import requests
 
 from datetime import datetime
@@ -65,11 +64,6 @@ def create_app():
     app.secret_key = SECRET_KEY
 
     w3 = Web3(Web3.HTTPProvider(f'https://mainnet.infura.io/v3/{INFURA_PROJECT_ID}'))
-
-    with open("contracts/ERC20ABI.json") as f:
-        erc20_json = json.load(f)
-
-    ERC20ABI = erc20_json
 
     @app.route('/', methods=['GET'])
     def index():

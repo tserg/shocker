@@ -1,5 +1,3 @@
-import requests
-
 from datetime import datetime
 
 def get_metamask_transaction_info(w3, tx_receipt, erc20abi):
