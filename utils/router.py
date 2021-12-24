@@ -36,8 +36,8 @@ def get_transaction_info(w3, swap_address, tx_receipt):
 
     if swap_address == UNISWAP_V3_ROUTER_ADDRESS:
 
-        return get_uniswap_v3_transaction_info(w3, tx_receipt)
+        return get_uniswap_v3_transaction_info(w3, tx_receipt, ERC20ABI)
 
     elif swap_address == METAMASK_ROUTER_ADDRESS:
 
-        return get_uniswap_v3_transaction_info(w3, tx_receipt)
+        return get_metamask_transaction_info(w3, tx_receipt, ERC20ABI)

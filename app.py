@@ -52,10 +52,7 @@ load_dotenv()
 INFURA_PROJECT_ID = os.getenv('INFURA_PROJECT_ID')
 INFURA_SECRET = os.getenv('INFURA_SECRET')
 
-UNISWAP_V3_ROUTER_ADDRESS = os.getenv('UNISWAP_V3_ROUTER_ADDRESS')
 UNISWAP_V3_GRAPH_API_URL = os.getenv('UNISWAP_V3_GRAPH_API_URL')
-
-METAMASK_ROUTER_ADDRESS = os.getenv('METAMASK_ROUTER_ADDRESS')
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
@@ -191,7 +188,7 @@ def create_app():
                 })
 
             from_token_address, from_token_amount, to_token_amount, tx_timestamp, \
-                trading_pair, short_ratio = get_transaction_info(w3, tx_receipt)
+                trading_pair, short_ratio = get_transaction_info(w3, swap_address, tx_receipt)
 
             current_ratio = 0
             try:
