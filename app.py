@@ -43,6 +43,10 @@ from utils.fetchers.uniswap_v3_fetcher import (
     get_uniswap_v3_price,
 )
 
+from utils.fetchers.metamask_fetcher import (
+    get_metamask_transaction_info,
+)
+
 load_dotenv()
 
 INFURA_PROJECT_ID = os.getenv('INFURA_PROJECT_ID')
@@ -50,6 +54,8 @@ INFURA_SECRET = os.getenv('INFURA_SECRET')
 
 UNISWAP_V3_ROUTER_ADDRESS = os.getenv('UNISWAP_V3_ROUTER_ADDRESS')
 UNISWAP_V3_GRAPH_API_URL = os.getenv('UNISWAP_V3_GRAPH_API_URL')
+
+METAMASK_ROUTER_ADDRESS = os.getenv('METAMASK_ROUTER_ADDRESS')
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
@@ -175,15 +181,23 @@ def create_app():
 
             tx_receipt = w3.eth.get_transaction_receipt(tx_hash)
 
-            if tx_receipt.to.lower() != UNISWAP_V3_ROUTER_ADDRESS.lower():
+            swap_address = tx_receipt.to.lower()
+
+            if swap_address != UNISWAP_V3_ROUTER_ADDRESS.lower() and \
+                swap_address != METAMASK_ROUTER_ADDRESS:
 
                 return jsonify({
                     'success': False,
                     'message': 'The transaction is not a Uniswap V3 transaction.'
                 })
 
-            from_token_address, from_token_amount, to_token_amount, tx_timestamp, \
-                trading_pair, short_ratio = get_uniswap_v3_transaction_info(w3, tx_receipt)
+            if swap_address == UNISWAP_V3_ROUTER_ADDRESS:
+                from_token_address, from_token_amount, to_token_amount, tx_timestamp, \
+                    trading_pair, short_ratio = get_uniswap_v3_transaction_info(w3, tx_receipt)
+
+            elif swap_address == METAMASK_ROUTER_ADDRESS:
+                from_token_address, from_token_amount, to_token_amount, tx_timestamp, \
+                    trading_pair, short_ratio = get_metamask_transaction_info(w3, tx_receipt)
 
             current_ratio = 0
             try:
