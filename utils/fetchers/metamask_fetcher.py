@@ -1,20 +1,8 @@
-import os
-import json
 import requests
 
 from datetime import datetime
-from dotenv import load_dotenv
 
-load_dotenv()
-
-METAMASK_ROUTER_ADDRESS = os.getenv('METAMASK_ROUTER_ADDRESS')
-
-with open("contracts/ERC20ABI.json") as f:
-    erc20_json = json.load(f)
-
-ERC20ABI = erc20_json
-
-def get_metamask_transaction_info(w3, tx_receipt):
+def get_metamask_transaction_info(w3, tx_receipt, erc20abi):
 
     print("metamask fetcher triggered")
     print(tx_receipt)
@@ -24,7 +12,7 @@ def get_metamask_transaction_info(w3, tx_receipt):
     to_token_amount = int(to_token_log.data, 16)
     to_token_contract = w3.eth.contract(
         address=to_token_address,
-        abi=ERC20ABI
+        abi=erc20abi
     )
     to_token_symbol = to_token_contract.functions.symbol().call()
 
@@ -33,7 +21,7 @@ def get_metamask_transaction_info(w3, tx_receipt):
     from_token_amount = int(from_token_log.data, 16)
     from_token_contract = w3.eth.contract(
         address=from_token_address,
-        abi=ERC20ABI
+        abi=erc20abi
     )
     from_token_symbol = from_token_contract.functions.symbol().call()
 

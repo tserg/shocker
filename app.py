@@ -39,12 +39,12 @@ from models import (
 )
 
 from utils.fetchers.uniswap_v3_fetcher import (
-    get_uniswap_v3_transaction_info,
     get_uniswap_v3_price,
 )
 
-from utils.fetchers.metamask_fetcher import (
-    get_metamask_transaction_info,
+from utils.router import (
+    is_supported_swap,
+    get_transaction_info,
 )
 
 load_dotenv()
@@ -183,21 +183,15 @@ def create_app():
 
             swap_address = tx_receipt.to.lower()
 
-            if swap_address != UNISWAP_V3_ROUTER_ADDRESS.lower() and \
-                swap_address != METAMASK_ROUTER_ADDRESS:
+            if not is_supported_swap(swap_address):
 
                 return jsonify({
                     'success': False,
-                    'message': 'The transaction is not a Uniswap V3 transaction.'
+                    'message': 'We currently do not support transactions with this provider.'
                 })
 
-            if swap_address == UNISWAP_V3_ROUTER_ADDRESS:
-                from_token_address, from_token_amount, to_token_amount, tx_timestamp, \
-                    trading_pair, short_ratio = get_uniswap_v3_transaction_info(w3, tx_receipt)
-
-            elif swap_address == METAMASK_ROUTER_ADDRESS:
-                from_token_address, from_token_amount, to_token_amount, tx_timestamp, \
-                    trading_pair, short_ratio = get_metamask_transaction_info(w3, tx_receipt)
+            from_token_address, from_token_amount, to_token_amount, tx_timestamp, \
+                trading_pair, short_ratio = get_transaction_info(w3, tx_receipt)
 
             current_ratio = 0
             try:
