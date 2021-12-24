@@ -11,7 +11,17 @@ def calculate_profit_loss(
     from_token_amount,
     current_ratio
 ):
-    return Web3.fromWei(
-        int(to_token_amount) - (int(from_token_amount) * current_ratio),
+
+    difference = (int(to_token_amount) - (int(from_token_amount) * current_ratio))
+
+    is_negative = difference < 0
+
+    result = Web3.fromWei(
+        abs(difference),
         'ether'
     )
+
+    if is_negative:
+        return -result
+
+    return result
