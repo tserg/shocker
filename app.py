@@ -234,6 +234,7 @@ def create_app():
 
             return jsonify({
                 'success': True,
+                'tx_hash': tx_hash,
                 'trading_pair': trading_pair,
                 'timestamp': tx_timestamp,
                 'short_ratio': short_ratio,
@@ -246,6 +247,56 @@ def create_app():
             return jsonify({
                 'success': False,
                 'message': 'We encountered an issue while trying to retrieve the transaction. Please try again.'
+            })
+
+    @app.route('/trade/delete', methods=['POST'])
+    def delete_trade():
+        data = request.get_json()
+        tx_hash = data['transaction_hash']
+
+        if not is_transaction_valid(tx_hash):
+            return jsonify({
+                'success': False,
+                'message': 'Transaction hash is invalid.'
+            })
+
+        is_user = False
+        if 'wallet_address' in session:
+
+            user = User.query.filter(
+                User.wallet_address==session['wallet_address']
+            ).first()
+            if user:
+                is_user = True
+
+        if not is_user:
+            return jsonify({
+                'success': True
+            })
+
+        try:
+            transaction = Transaction.query.filter(
+                Transaction.tx_hash==tx_hash,
+                Transaction.user_address==user.wallet_address
+            ).first()
+
+            if not transaction:
+                return jsonify({
+                    'success': False,
+                    'message': 'Unable to retrieve transaction. Pleaes refresh and try again.'
+                })
+
+            transaction.delete()
+
+            return jsonify({
+                'success': True
+            })
+
+        except Exception as e:
+            print(e)
+            return jsonify({
+                'success': False,
+                'message': 'We encountered an issue while trying to delete the transaction. Please try again.'
             })
 
     @app.route('/user/transactions', methods=['POST'])

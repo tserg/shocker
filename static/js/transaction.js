@@ -103,6 +103,7 @@ async function getTransactions() {
 			for (let i=0; i<transactions.length; i++) {
 
 				addTransactionRecordToTable(
+                    transactions[i]['tx_hash'],
 					transactions[i]['trading_pair'],
 					transactions[i]['timestamp'],
 					transactions[i]['short_ratio'],
@@ -110,6 +111,8 @@ async function getTransactions() {
 					transactions[i]['profit_loss']
 				)
 			}
+
+            initialiseDeleteButtons();
 
         } else if (data['success'] === false) {
 
@@ -144,12 +147,16 @@ function addTransaction() {
 			error_message_field.innerHTML = '';
 
 			addTransactionRecordToTable(
+                data['tx_hash'],
 				data['trading_pair'],
 				data['timestamp'],
 				data['short_ratio'],
 				data['current_ratio'],
 				data['profit_loss']
-			)
+			);
+
+            initialiseDeleteButtons();
+
 		} else if (data['success'] === false) {
 
 			error_message_field.innerHTML = data['message'];
@@ -160,7 +167,14 @@ function addTransaction() {
 	});
 }
 
-async function addTransactionRecordToTable(_pair, _timestamp, _shortRatio, _currentRatio, _profitLoss) {
+async function addTransactionRecordToTable(
+    _tx_hash,
+    _pair,
+    _timestamp,
+    _shortRatio,
+    _currentRatio,
+    _profitLoss
+) {
 
 	var row = transactionTable.insertRow();
 
@@ -184,4 +198,63 @@ async function addTransactionRecordToTable(_pair, _timestamp, _shortRatio, _curr
 	td5.innerHTML = _profitLoss;
 	row.appendChild(td5);
 
+    var td6 = document.createElement('td');
+    var deleteButton = document.createElement('button');
+    deleteButton.innerHTML = 'Remove';
+    deleteButton.className = 'delete-btn';
+    deleteButton.setAttribute('data-tx-hash', _tx_hash);
+
+    td6.appendChild(deleteButton)
+    row.appendChild(td6);
+
+}
+
+async function deleteRow(_deleteButton) {
+    var parent_row = _deleteButton.parentNode.parentNode.rowIndex;
+    document.getElementById('transaction-table').deleteRow(parent_row);
+}
+
+async function deleteTransaction(_deleteButton) {
+
+    var tx_hash_delete = _deleteButton.dataset.txHash;
+
+	const data = {
+		'transaction_hash': tx_hash_delete
+	}
+
+    fetch('/trade/delete', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify(data),
+	})
+	.then(response => response.json())
+	.then(data => {
+		if (data['success'] === true) {
+
+            deleteRow(_deleteButton);
+
+		} else if (data['success'] === false) {
+
+			error_message_field.innerHTML = data['message'];
+		}
+	})
+	.catch((error) => {
+		console.log('Error: ', error);
+	});
+
+}
+
+async function initialiseDeleteButtons() {
+    console.log("Initialising delete buttons");
+    var deleteButtons = document.querySelectorAll('.delete-btn');
+
+    for (let i=0; i<deleteButtons.length; i++) {
+
+        deleteButtons[i].addEventListener('click', () => {
+            deleteTransaction(deleteButtons[i]);
+        })
+
+    }
 }
