@@ -1,6 +1,12 @@
 # Overview
 
-Track your ERC20 shorts against ETH on Uniswap V3.
+Track your profit/loss for manual ERC20 shorts against ETH on Uniswap V3. A live instance is deployed [here](https://eth-shocker.herokuapp.com/).
+
+For each trade, we calculate your profit/loss in ETH based on the existing ERC20-ETH ratio vs the ERC20-ETH ratio at the time of the transaction.
+
+Supported contracts:
+- Uniswap V3
+- Metamask Swap
 
 # Installation
 
